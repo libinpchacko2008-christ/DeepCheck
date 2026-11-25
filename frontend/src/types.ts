@@ -34,6 +34,7 @@ export interface AnalysisResult {
   filename: string;
   file_size_formatted: string;
   duration_sec?: number | null;
+  face_detector_used?: string;
   faces_detected: number;
   frames_analyzed: number;
   model_score: number | null;

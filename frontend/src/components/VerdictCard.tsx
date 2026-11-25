@@ -132,7 +132,9 @@ export const VerdictCard: React.FC<VerdictCardProps> = ({ result, onReset }) => 
             <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mt-1">
               {faces_detected}
             </p>
-            <p className="text-[11px] text-zinc-400 mt-0.5">Localized via Haar Cascade</p>
+            <p className="text-[11px] text-zinc-400 mt-0.5">
+              {result.face_detector_used ? `Localized via ${result.face_detector_used}` : 'Facial ROI localized'}
+            </p>
           </div>
 
           <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-800">

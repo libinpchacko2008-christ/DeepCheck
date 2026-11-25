@@ -23,6 +23,7 @@ class DeepfakeDetectorService:
         self.device = "cpu"
         self.yunet_detector = None
         self.face_cascade = None
+        self.last_detector_used: Optional[str] = None
         
         # Load face detector
         self._init_face_detector()
@@ -116,6 +117,7 @@ class DeepfakeDetectorService:
                 _, faces = self.yunet_detector.detect(img_for_detect)
                 
                 if faces is not None and len(faces) > 0:
+                    self.last_detector_used = "OpenCV YuNet"
                     results = []
                     for face in faces:
                         fx, fy, fw, fh = face[:4]
@@ -150,28 +152,38 @@ class DeepfakeDetectorService:
                     minSize=(30, 30)
                 )
                 if len(faces) > 0:
+                    self.last_detector_used = "Haar Cascade"
                     return [(int(x / scale), int(y / scale), int(w / scale), int(h / scale)) for (x, y, w, h) in faces]
             except Exception as e:
                 print(f"[Detector] Haar detection error: {e}")
 
+        self.last_detector_used = None
         return []
 
-    def _crop_face_with_margin(self, cv2_bgr_image: np.ndarray, bbox: Tuple[int, int, int, int], margin: float = 0.2) -> np.ndarray:
+    def _crop_face_with_margin(self, cv2_bgr_image: np.ndarray, bbox: Tuple[int, int, int, int], factor: float = 2.0) -> np.ndarray:
         """
-        Crops face with surrounding margin so that facial boundaries/blending seams are captured.
+        Crops a portrait-style head region centered on the detected face (factor ~2.0),
+        matching the distribution of portrait datasets (FFHQ / CelebA-HQ / 140k Real/Fake)
+        on which ViT classifiers are trained (including hair, chin, ears, and neck boundaries).
         """
         h_img, w_img = cv2_bgr_image.shape[:2]
         x, y, w, h = bbox
+        cx, cy = x + w / 2.0, y + h / 2.0
         
-        mx = int(w * margin)
-        my = int(h * margin)
+        # Bounding box size for full head/portrait crop
+        size = int(max(w, h) * factor)
         
-        x1 = max(0, x - mx)
-        y1 = max(0, y - my)
-        x2 = min(w_img, x + w + mx)
-        y2 = min(h_img, y + h + my)
+        # Shift vertical center slightly downward to capture hair and upper chest/neck
+        y_center_shift = int(size * 0.05)
+        
+        x1 = max(0, int(cx - size / 2.0))
+        y1 = max(0, int(cy - size / 2.0 - y_center_shift))
+        x2 = min(w_img, int(cx + size / 2.0))
+        y2 = min(h_img, int(cy + size / 2.0 + y_center_shift))
         
         crop = cv2_bgr_image[y1:y2, x1:x2]
+        if crop.size == 0:
+            return cv2_bgr_image[y:y+h, x:x+w]
         return crop
 
     def classify_face_crop(self, face_bgr: np.ndarray) -> float:
@@ -275,6 +287,7 @@ class DeepfakeDetectorService:
         return {
             "media_type": "image",
             "is_sample": False,
+            "face_detector_used": self.last_detector_used or "OpenCV YuNet",
             "faces_detected": len(faces),
             "frames_analyzed": 1,
             "model_score": round(primary_score, 4),
@@ -442,6 +455,7 @@ class DeepfakeDetectorService:
         return {
             "media_type": "video",
             "is_sample": False,
+            "face_detector_used": self.last_detector_used or "OpenCV YuNet",
             "duration_sec": round(duration_sec, 2),
             "faces_detected": total_faces_found,
             "frames_analyzed": len(sample_indices),
