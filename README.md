@@ -51,6 +51,13 @@ python -m venv venv
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 pip install fastapi uvicorn python-multipart pydantic pillow opencv-python-headless transformers
 
+# Download face-detection weight files (required, excluded from git)
+mkdir -p app/weights
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/opencv/opencv_zoo/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx" -OutFile "app/weights/face_detection_yunet_2023mar.onnx"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_frontalface_default.xml" -OutFile "app/weights/haarcascade_frontalface_default.xml"
+
+# The deepfake classifier (ViT) downloads automatically on first run via HuggingFace Transformers
+
 # Launch FastAPI backend on port 8000
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
