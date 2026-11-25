@@ -180,6 +180,9 @@ async def analyze_media(
         result["filename"] = filename
         result["file_size_formatted"] = f"{round(total_bytes / (1024 * 1024), 2)} MB"
         result["is_sample"] = False
+        print(f"[Analyze Completed] file={filename} faces={result.get('faces_detected')} score={result.get('model_score')} verdict={result.get('verdict')}")
+        if "face_breakdown" in result:
+            print(f"  Face scores: {[f['score'] for f in result['face_breakdown']]}")
         return result
 
     finally:

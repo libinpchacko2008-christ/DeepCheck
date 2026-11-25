@@ -160,9 +160,9 @@ class DeepfakeDetectorService:
         self.last_detector_used = None
         return []
 
-    def _crop_face_with_margin(self, cv2_bgr_image: np.ndarray, bbox: Tuple[int, int, int, int], factor: float = 2.0) -> np.ndarray:
+    def _crop_face_with_margin(self, cv2_bgr_image: np.ndarray, bbox: Tuple[int, int, int, int], factor: float = 1.85) -> np.ndarray:
         """
-        Crops a portrait-style head region centered on the detected face (factor ~2.0),
+        Crops a portrait-style head region centered on the detected face (factor ~1.85),
         matching the distribution of portrait datasets (FFHQ / CelebA-HQ / 140k Real/Fake)
         on which ViT classifiers are trained (including hair, chin, ears, and neck boundaries).
         """
