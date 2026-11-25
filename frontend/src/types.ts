@@ -36,6 +36,12 @@ export interface AnalysisResult {
   duration_sec?: number | null;
   face_detector_used?: string;
   faces_detected: number;
+  face_breakdown?: Array<{
+    face_index: number;
+    score: number;
+    bbox: { x: number; y: number; w: number; h: number };
+    flagged: boolean;
+  }>;
   frames_analyzed: number;
   model_score: number | null;
   score_label: string;

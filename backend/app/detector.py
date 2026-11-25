@@ -266,16 +266,36 @@ class DeepfakeDetectorService:
                 "timeline": []
             }
             
-        # Primary score: if any face in the image shows manipulation, elevate primary score
+        # Multi-face aggregation: an image is compromised if ANY face shows manipulation.
+        # Use max_score so a manipulated face is not diluted by innocent bystanders.
         avg_score = float(np.mean(face_scores))
         max_score = float(np.max(face_scores))
-        primary_score = max_score if max_score >= MANIPULATION_THRESHOLD else avg_score
+        primary_score = max_score
+        
+        face_breakdown = []
+        for idx, (score, bbox) in enumerate(zip(face_scores, faces)):
+            face_breakdown.append({
+                "face_index": idx + 1,
+                "score": round(score, 4),
+                "bbox": {"x": bbox[0], "y": bbox[1], "w": bbox[2], "h": bbox[3]},
+                "flagged": bool(score >= MANIPULATION_THRESHOLD)
+            })
         
         verdict, severity, confidence, reason = self._compute_verdict(
             avg_score=primary_score,
             flagged_ratio=1.0 if primary_score >= MANIPULATION_THRESHOLD else 0.0,
             usable_frames=1
         )
+        
+        if len(faces) > 1:
+            if primary_score >= MANIPULATION_THRESHOLD:
+                flagged_idx = int(np.argmax(face_scores)) + 1
+                reason = f"Face #{flagged_idx} exhibited high manipulation indicators (score: {round(primary_score, 3)}), exceeding the {MANIPULATION_THRESHOLD} threshold across {len(faces)} detected faces."
+            elif primary_score > AUTHENTIC_THRESHOLD:
+                suspicious_idx = int(np.argmax(face_scores)) + 1
+                reason = f"Face #{suspicious_idx} showed borderline elevated score ({round(primary_score, 3)}) in the inconclusive range ({AUTHENTIC_THRESHOLD} - {MANIPULATION_THRESHOLD}) among {len(faces)} detected faces."
+            else:
+                reason = f"All {len(faces)} detected faces exhibit natural textures below the authentic threshold of {AUTHENTIC_THRESHOLD} (highest face score: {round(primary_score, 3)})."
         
         timeline = [{
             "timestamp_sec": 0.0,
@@ -289,6 +309,7 @@ class DeepfakeDetectorService:
             "is_sample": False,
             "face_detector_used": self.last_detector_used or "OpenCV YuNet",
             "faces_detected": len(faces),
+            "face_breakdown": face_breakdown,
             "frames_analyzed": 1,
             "model_score": round(primary_score, 4),
             "score_label": "Model score (Fake likelihood: 0 = Real, 1 = Fake)",

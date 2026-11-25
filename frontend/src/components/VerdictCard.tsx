@@ -162,6 +162,52 @@ export const VerdictCard: React.FC<VerdictCardProps> = ({ result, onReset }) => 
           </div>
         </div>
 
+        {/* Multi-Face Breakdown (when >1 face detected) */}
+        {result.face_breakdown && result.face_breakdown.length > 1 && (
+          <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-800 space-y-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+              <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                Multi-Face Breakdown ({result.face_breakdown.length} detected faces)
+              </span>
+              <span className="text-[11px] text-zinc-400">
+                Highest face risk score dictates the overall verdict
+              </span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 pt-1">
+              {result.face_breakdown.map((face) => (
+                <div 
+                  key={face.face_index}
+                  className={`p-2.5 rounded-lg border text-center transition-all ${
+                    face.flagged 
+                      ? 'bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-900/60' 
+                      : face.score > 0.35 
+                        ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-900/60'
+                        : 'bg-white dark:bg-zinc-900/60 border-zinc-200 dark:border-zinc-800'
+                  }`}
+                >
+                  <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
+                    Face #{face.face_index}
+                  </p>
+                  <p className={`text-sm font-bold mt-0.5 ${
+                    face.flagged 
+                      ? 'text-red-600 dark:text-red-400' 
+                      : face.score > 0.35 
+                        ? 'text-amber-600 dark:text-amber-400'
+                        : 'text-emerald-600 dark:text-emerald-400'
+                  }`}>
+                    {face.score.toFixed(3)}
+                  </p>
+                  <span className={`text-[10px] font-semibold block mt-0.5 ${
+                    face.flagged ? 'text-red-500' : face.score > 0.35 ? 'text-amber-500' : 'text-zinc-400'
+                  }`}>
+                    {face.flagged ? 'Flagged' : face.score > 0.35 ? 'Borderline' : 'Natural'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Model Score Gauge and Threshold Explanation */}
         <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-800">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs mb-2 gap-1">
